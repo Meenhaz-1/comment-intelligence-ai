@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Env
+.env
+
+# Mac
+.DS_Store
+
+# Outputs (optional)
+outputs/
+
+# Data files
+data/
+outputs/
