@@ -6,8 +6,12 @@ from pathlib import Path
 import pandas as pd
 
 
-INPUT_PATH = Path("data/comments_sample.csv")
-OUTPUT_PATH = Path("outputs/cleaned_comments.csv")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+INPUT_PATH = ROOT_DIR / "data" / "comments_sample.csv"
+OUTPUT_PATH = ROOT_DIR / "outputs" / "cleaned_comments.csv"
+
+RECIPE_DATA_PATH = ROOT_DIR / "data" / "Recipe_data.csv"
+RECIPE_SAVE_PATH = ROOT_DIR / "data" / "recipe_saves.csv"
 
 
 def parse_metadata(value: object) -> dict:
@@ -36,7 +40,7 @@ def first_non_empty(*values: object) -> str | None:
     return None
 
 
-def load_and_clean_comments(path: Path) -> pd.DataFrame:
+def load_and_clean_comments(path: Path = INPUT_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
 
     # Normalize column names
@@ -110,6 +114,22 @@ def load_and_clean_comments(path: Path) -> pd.DataFrame:
     ].copy()
 
     return clean_df
+
+
+def load_recipe_data(path: Path = RECIPE_DATA_PATH) -> pd.DataFrame:
+    """Load recipe metadata + pageviews dataset."""
+    if not path.exists():
+        raise FileNotFoundError(f"Could not find recipe data file: {path}")
+    df = pd.read_csv(path)
+    return df
+
+
+def load_recipe_save(path: Path = RECIPE_SAVE_PATH) -> pd.DataFrame:
+    """Load recipe saves dataset."""
+    if not path.exists():
+        raise FileNotFoundError(f"Could not find recipe saves file: {path}")
+    df = pd.read_csv(path)
+    return df
 
 
 def main() -> None:
