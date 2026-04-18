@@ -1,0 +1,146 @@
+[
+  {
+    "contentId": "r1",
+    "editorId": "alice-smith",
+    "title": "Homemade Sourdough Bread",
+    "tags": ["Bread", "Baking"],
+    "pageviews": 68400,
+    "saves": 5120
+  },
+  {
+    "contentId": "r2",
+    "editorId": "alice-smith",
+    "title": "Dark Chocolate Brownies",
+    "tags": ["Dessert", "Chocolate"],
+    "pageviews": 56200,
+    "saves": 4780
+  },
+  {
+    "contentId": "r3",
+    "editorId": "alice-smith",
+    "title": "Grilled Salmon with Lemon Herb Butter",
+    "tags": ["Seafood", "Dinner"],
+    "pageviews": 52300,
+    "saves": 4120
+  },
+  {
+    "contentId": "r4",
+    "editorId": "alice-smith",
+    "title": "Classic Chocolate Chip Cookies",
+    "tags": ["Dessert", "Baking"],
+    "pageviews": 45200,
+    "saves": 3820
+  },
+  {
+    "contentId": "r5",
+    "editorId": "alice-smith",
+    "title": "Classic Caesar Salad",
+    "tags": ["Salad", "Quick"],
+    "pageviews": 41200,
+    "saves": 2890
+  },
+  {
+    "contentId": "r6",
+    "editorId": "alice-smith",
+    "title": "Creamy Mushroom Risotto",
+    "tags": ["Italian", "Dinner"],
+    "pageviews": 38700,
+    "saves": 3240
+  },
+  {
+    "contentId": "r7",
+    "editorId": "alice-smith",
+    "title": "Thai Green Curry",
+    "tags": ["Thai", "Dinner"],
+    "pageviews": 32100,
+    "saves": 2650
+  },
+  {
+    "contentId": "r8",
+    "editorId": "alice-smith",
+    "title": "Lemon Blueberry Muffins",
+    "tags": ["Breakfast", "Baking"],
+    "pageviews": 28900,
+    "saves": 1890
+  },
+  {
+    "contentId": "r9",
+    "editorId": "alice-smith",
+    "title": "Apple Cinnamon Pancakes",
+    "tags": ["Breakfast", "Fall"],
+    "pageviews": 24800,
+    "saves": 1650
+  },
+  {
+    "contentId": "r10",
+    "editorId": "alice-smith",
+    "title": "Butternut Squash Soup",
+    "tags": ["Soup", "Fall"],
+    "pageviews": 19500,
+    "saves": 1520
+  },
+  {
+    "contentId": "r11",
+    "editorId": "alice-smith",
+    "title": "Caprese Pasta Salad",
+    "tags": ["Pasta", "Salad"],
+    "pageviews": 18200,
+    "saves": 1120
+  },
+  {
+    "contentId": "r12",
+    "editorId": "alice-smith",
+    "title": "Roasted Carrot Dip",
+    "tags": ["Snack", "Vegetarian"],
+    "pageviews": 14400,
+    "saves": 1040
+  },
+  {
+    "contentId": "r13",
+    "editorId": "david-chen",
+    "title": "Weeknight Chili Crisp Noodles",
+    "tags": ["Noodles", "Quick"],
+    "pageviews": 44100,
+    "saves": 3880
+  },
+  {
+    "contentId": "r14",
+    "editorId": "david-chen",
+    "title": "Ginger Scallion Salmon Bowls",
+    "tags": ["Seafood", "Dinner"],
+    "pageviews": 33700,
+    "saves": 2510
+  },
+  {
+    "contentId": "r15",
+    "editorId": "david-chen",
+    "title": "Miso Butter Corn Rice",
+    "tags": ["Rice", "Side"],
+    "pageviews": 26100,
+    "saves": 2060
+  },
+  {
+    "contentId": "r16",
+    "editorId": "maya-patel",
+    "title": "Masala Chickpea Stew",
+    "tags": ["Stew", "Vegetarian"],
+    "pageviews": 39200,
+    "saves": 3540
+  },
+  {
+    "contentId": "r17",
+    "editorId": "maya-patel",
+    "title": "Coconut Cardamom Rice Pudding",
+    "tags": ["Dessert", "Rice"],
+    "pageviews": 21400,
+    "saves": 1980
+  },
+  {
+    "contentId": "r18",
+    "editorId": "maya-patel",
+    "title": "Spiced Sheet-Pan Cauliflower",
+    "tags": ["Vegetarian", "Sheet Pan"],
+    "pageviews": 17600,
+    "saves": 1210
+  }
+]

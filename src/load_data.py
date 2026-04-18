@@ -41,7 +41,7 @@ def first_non_empty(*values: object) -> str | None:
 
 
 def load_and_clean_comments(path: Path = INPUT_PATH) -> pd.DataFrame:
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, low_memory=False)
 
     # Normalize column names
     df = df.rename(

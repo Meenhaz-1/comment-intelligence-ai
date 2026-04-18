@@ -11,6 +11,10 @@ __pycache__/
 # Mac
 .DS_Store
 
+# Frontend
+web/node_modules/
+web/.next/
+
 # Outputs (optional)
 outputs/
 

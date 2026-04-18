@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from load_data import load_recipe_data, load_recipe_save
 
 
-OUTPUT_PATH = "data/recipe_master.csv"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+OUTPUT_PATH = ROOT_DIR / "data" / "recipe_master.csv"
+KEYWORD_SUMMARY_PATH = ROOT_DIR / "outputs" / "recipe_keyword_summary.csv"
 
 
 def clean_recipe_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -83,6 +87,23 @@ def clean_recipe_save(df: pd.DataFrame) -> pd.DataFrame:
     return recipe_save
 
 
+def load_recipe_keyword_summary(path: Path = KEYWORD_SUMMARY_PATH) -> pd.DataFrame:
+    """Load optional per-recipe keyword summary."""
+    if not path.exists():
+        return pd.DataFrame(
+            columns=[
+                "recipe_id",
+                "top_keywords",
+                "top_phrases",
+                "keyword_buckets",
+                "top_keywords_with_counts",
+            ]
+        )
+
+    df = pd.read_csv(path)
+    return df
+
+
 def main() -> None:
     recipe_data = load_recipe_data()
     recipe_save = load_recipe_save()
@@ -95,13 +116,21 @@ def main() -> None:
 
     recipe_data_clean = clean_recipe_data(recipe_data)
     recipe_save_clean = clean_recipe_save(recipe_save)
+    recipe_keyword_summary = load_recipe_keyword_summary()
 
     print("\nClean recipe_data rows:", len(recipe_data_clean))
     print("Clean recipe_save rows:", len(recipe_save_clean))
+    print("Recipe keyword summary rows:", len(recipe_keyword_summary))
 
     recipe_master = recipe_data_clean.merge(
         recipe_save_clean,
         on="content_id",
+        how="left",
+    )
+    recipe_master = recipe_master.merge(
+        recipe_keyword_summary,
+        left_on="content_id",
+        right_on="recipe_id",
         how="left",
     )
 
@@ -118,6 +147,10 @@ def main() -> None:
             "save_sessions_app",
             "save_sessions_web",
             "total_save_sessions_clean",
+            "top_keywords",
+            "top_phrases",
+            "keyword_buckets",
+            "top_keywords_with_counts",
         ]
     ].copy()
 
