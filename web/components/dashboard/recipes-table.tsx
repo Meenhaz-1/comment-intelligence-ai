@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DashboardRecipeRow } from "@/lib/types";
-import { formatOpportunityScore, isLowSignal } from "@/lib/utils/editorial";
+import {
+  formatOpportunityScore,
+  getDisplayIssueText,
+  getInferredBadgeLabel,
+  getRecommendedEditText,
+  isLowSignal,
+  truncateText,
+} from "@/lib/utils/editorial";
 
 import { TagChip } from "./tag-chip";
 
@@ -38,9 +45,10 @@ export function RecipesTable({ recipes }: { recipes: DashboardRecipeRow[] }) {
     const normalizedQuery = query.trim().toLowerCase();
     const minCommentsValue = Number(minComments);
     const priorityRank: Record<string, number> = {
-      "High Opportunity": 3,
-      "Medium Opportunity": 2,
-      "Low Opportunity": 1,
+      "High Opportunity": 4,
+      "Needs Improvement": 3,
+      "Needs Fix": 2,
+      "Performing Well": 1,
       "Low Signal": 0,
     };
 
@@ -117,8 +125,9 @@ export function RecipesTable({ recipes }: { recipes: DashboardRecipeRow[] }) {
         >
           <option value="all">All priorities</option>
           <option value="High Opportunity">High Opportunity</option>
-          <option value="Medium Opportunity">Medium Opportunity</option>
-          <option value="Low Opportunity">Low Opportunity</option>
+          <option value="Needs Improvement">Needs Improvement</option>
+          <option value="Needs Fix">Needs Fix</option>
+          <option value="Performing Well">Performing Well</option>
           <option value="Low Signal">Low Signal</option>
         </select>
         <select
@@ -152,7 +161,7 @@ export function RecipesTable({ recipes }: { recipes: DashboardRecipeRow[] }) {
                 </button>
               </th>
               <th>Main Issue</th>
-              <th>Common Fix</th>
+              <th>Recommended Edit</th>
               <th>
                 <button
                   className="sort-button"
@@ -182,37 +191,52 @@ export function RecipesTable({ recipes }: { recipes: DashboardRecipeRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedRecipes.map((recipe) => (
-              <tr
-                className={isLowSignal(recipe.priority) ? "low-signal-row" : ""}
-                key={recipe.contentId}
-              >
-                <td>
-                  <Link className="recipe-title recipe-link" href={`/recipe/${recipe.contentId}`}>
-                    {recipe.title}
-                  </Link>
-                  <div className="recipe-insight-chip">
-                    <span className="table-secondary">
-                      {isLowSignal(recipe.priority)
-                        ? "Low signal"
-                        : `${recipe.pageviews.toLocaleString()} views · ${
-                            recipe.saves === null ? "N/A saves" : `${recipe.saves.toLocaleString()} saves`
-                          }`}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <TagChip
-                    label={recipe.priority}
-                    tone={isLowSignal(recipe.priority) ? "default" : "insight"}
-                  />
-                </td>
-                <td>{recipe.mainIssue}</td>
-                <td>{recipe.commonFix}</td>
-                <td className="metric-cell">{formatOpportunityScore(recipe.opportunityScore)}</td>
-                <td className="metric-cell">{recipe.totalComments}</td>
-              </tr>
-            ))}
+            {filteredAndSortedRecipes.map((recipe) => {
+              const displayIssue = getDisplayIssueText(recipe);
+              const recommendedEdit = getRecommendedEditText(recipe);
+              const inferredBadge = getInferredBadgeLabel(recipe);
+
+              return (
+                <tr
+                  className={isLowSignal(recipe.priority) ? "low-signal-row" : ""}
+                  key={recipe.contentId}
+                >
+                  <td>
+                    <Link className="recipe-title recipe-link" href={`/recipe/${recipe.contentId}`}>
+                      {recipe.title}
+                    </Link>
+                    <div className="recipe-insight-chip">
+                      <span className="table-secondary">
+                        {isLowSignal(recipe.priority)
+                          ? "Low signal"
+                          : `${recipe.pageviews.toLocaleString()} views · ${
+                              recipe.saves === null ? "N/A saves" : `${recipe.saves.toLocaleString()} saves`
+                            }`}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <TagChip
+                      label={recipe.priority}
+                      tone={isLowSignal(recipe.priority) ? "default" : "insight"}
+                    />
+                  </td>
+                  <td>
+                    <div className="decision-cell-copy">{displayIssue || "Needs manual review"}</div>
+                    {inferredBadge ? (
+                      <div className="decision-inline-note">{inferredBadge}</div>
+                    ) : null}
+                  </td>
+                  <td title={recommendedEdit || undefined}>
+                    <div className="decision-cell-copy">
+                      {truncateText(recommendedEdit, 88) || "Review comment evidence manually"}
+                    </div>
+                  </td>
+                  <td className="metric-cell">{formatOpportunityScore(recipe.opportunityScore)}</td>
+                  <td className="metric-cell">{recipe.totalComments}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

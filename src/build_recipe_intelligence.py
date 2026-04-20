@@ -11,6 +11,7 @@ import pandas as pd
 RECIPE_MASTER_PATH = "data/recipe_master.csv"
 RECIPE_COMMENT_FEATURES_PATH = "outputs/recipe_comment_features.csv"
 BEHAVIORAL_PHRASES_WIDE_PATH = "outputs/recipe_behavioral_phrases_wide.csv"
+GLOBAL_FRICTION_LOOKUP_PATH = "outputs/global_friction_phrases_labeled.csv"
 
 OUTPUT_PATH = "outputs/recipe_intelligence.csv"
 
@@ -163,63 +164,514 @@ def pct_to_prop(series: pd.Series) -> pd.Series:
 def classify_recipe(row: pd.Series) -> str:
     f = row["friction_score"]
     r = row["recoverability_score"]
-    e = row["engagement_score"]
     repeat_intent = row["pct_repeat_intent_prop"]
     comments = row["total_comments"]
 
-    # Low data → ignore
     if comments < 5:
         return "Low Signal"
 
-    # High friction cases
     if f > 0.30:
         if r > 0.15:
             return "High Opportunity"
-    elif r > 0.02:
-        return "Needs Improvement"
-    else:
-        return "Needs Fix"
+        elif r > 0.02:
+            return "Needs Improvement"
+        else:
+            return "Needs Fix"
 
-    # Low friction → good recipes
+    if r > 0.02:
+        return "Needs Improvement"
+
     if f < 0.15 and repeat_intent > 0.20:
         return "Performing Well"
 
     return "Low Signal"
 
 
+def build_phrase_lookup(df: pd.DataFrame) -> dict[str, dict]:
+    """
+    Build lookup from phrase -> normalized issue metadata.
+    Only keep rows with keep_flag == 1.
+    """
+    required_cols = ["phrase", "normalized_issue", "issue_family", "keep_flag"]
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        raise KeyError(
+            f"global_friction_phrases_labeled is missing required columns: {missing}"
+        )
+
+    work = df.copy()
+    work["phrase"] = work["phrase"].fillna("").astype(str).str.strip().str.lower()
+    work["normalized_issue"] = work["normalized_issue"].fillna("").astype(str).str.strip()
+    work["issue_family"] = work["issue_family"].fillna("").astype(str).str.strip()
+    work["keep_flag"] = pd.to_numeric(work["keep_flag"], errors="coerce").fillna(0).astype(int)
+
+    work = work[(work["phrase"] != "") & (work["keep_flag"] == 1)].copy()
+
+    if work["phrase"].duplicated().any():
+        dupes = work[work["phrase"].duplicated(keep=False)].sort_values("phrase")
+        sample = dupes.head(20).to_string(index=False)
+        raise ValueError(
+            "global_friction_phrases_labeled has duplicate phrases after filtering keep_flag == 1.\n"
+            f"Sample duplicate rows:\n{sample}"
+        )
+
+    return {
+        row["phrase"]: {
+            "normalized_issue": row["normalized_issue"],
+            "issue_family": row["issue_family"],
+            "keep_flag": row["keep_flag"],
+        }
+        for _, row in work.iterrows()
+    }
+
+
+def canonicalize_phrase(raw_phrase: str) -> str:
+    """
+    Light canonicalization before phrase lookup.
+    """
+    phrase = "" if pd.isna(raw_phrase) else str(raw_phrase).strip().lower()
+    phrase = phrase.replace("didnt", "didn't")
+    phrase = " ".join(phrase.split())
+
+    fallback_map = {
+        "dry": "too dry",
+        "salty": "too salty",
+        "sweet": "too sweet",
+        "spicy": "too spicy",
+        "watery": "too watery",
+        "wet": "too wet",
+        "thick": "too thick",
+        "oily": "too oily",
+        "burned": "burnt",
+    }
+
+    return fallback_map.get(phrase, phrase)
+
+
+def lookup_issue_fields(phrase: str, phrase_lookup: dict[str, dict]) -> dict[str, object]:
+    """
+    Map a raw friction phrase to normalized issue fields.
+    """
+    raw = "" if pd.isna(phrase) else str(phrase).strip()
+    key = canonicalize_phrase(raw)
+
+    if key in phrase_lookup:
+        match = phrase_lookup[key]
+        return {
+            "issue_phrase": raw,
+            "normalized_issue": match["normalized_issue"],
+            "issue_family": match["issue_family"],
+            "keep_flag": match["keep_flag"],
+            "issue_source": "phrase",
+            "issue_confidence": "high",
+        }
+
+    return {
+        "issue_phrase": "",
+        "normalized_issue": "",
+        "issue_family": "",
+        "keep_flag": 0,
+        "issue_source": "",
+        "issue_confidence": "",
+    }
+
+
+def derive_recipe_issue_fields(
+    df: pd.DataFrame,
+    phrase_lookup: dict[str, dict],
+) -> pd.DataFrame:
+    """
+    Derive recipe-level normalized issue fields from top friction phrases.
+    Uses phrase_1 as primary if mapped and kept.
+    Falls back to phrase_2 if phrase_1 is unmapped or suppressed.
+    Also exposes secondary issue fields when available.
+    """
+    df = df.copy()
+
+    primary_results = []
+    secondary_results = []
+
+    for _, row in df.iterrows():
+        p1 = lookup_issue_fields(row.get("top_friction_phrase_1", ""), phrase_lookup)
+        p2 = lookup_issue_fields(row.get("top_friction_phrase_2", ""), phrase_lookup)
+
+        p1_cov = pd.to_numeric(row.get("top_friction_phrase_1_coverage_pct", 0), errors="coerce")
+        p2_cov = pd.to_numeric(row.get("top_friction_phrase_2_coverage_pct", 0), errors="coerce")
+
+        p1_cov = 0 if pd.isna(p1_cov) else p1_cov
+        p2_cov = 0 if pd.isna(p2_cov) else p2_cov
+
+        candidates = []
+        if p1["normalized_issue"]:
+            candidates.append(
+                {
+                    "rank_source": 1,
+                    "issue_phrase": p1["issue_phrase"],
+                    "normalized_issue": p1["normalized_issue"],
+                    "issue_family": p1["issue_family"],
+                    "keep_flag": p1["keep_flag"],
+                    "coverage_pct": p1_cov,
+                    "issue_source": p1["issue_source"],
+                    "issue_confidence": p1["issue_confidence"],
+                }
+            )
+        if p2["normalized_issue"]:
+            candidates.append(
+                {
+                    "rank_source": 2,
+                    "issue_phrase": p2["issue_phrase"],
+                    "normalized_issue": p2["normalized_issue"],
+                    "issue_family": p2["issue_family"],
+                    "keep_flag": p2["keep_flag"],
+                    "coverage_pct": p2_cov,
+                    "issue_source": p2["issue_source"],
+                    "issue_confidence": p2["issue_confidence"],
+                }
+            )
+
+        if candidates:
+            primary = sorted(
+                candidates,
+                key=lambda x: (-x["coverage_pct"], x["rank_source"])
+            )[0]
+
+            remaining = [
+                x for x in candidates
+                if not (
+                    x["issue_phrase"] == primary["issue_phrase"]
+                    and x["normalized_issue"] == primary["normalized_issue"]
+                )
+            ]
+
+            secondary = sorted(
+                remaining,
+                key=lambda x: (-x["coverage_pct"], x["rank_source"])
+            )[0] if remaining else None
+        else:
+            primary = {
+                "issue_phrase": "",
+                "normalized_issue": "",
+                "issue_family": "",
+                "keep_flag": 0,
+                "coverage_pct": 0,
+                "issue_source": "",
+                "issue_confidence": "",
+            }
+            secondary = None
+
+        primary_results.append(primary)
+        secondary_results.append(secondary or {
+            "issue_phrase": "",
+            "normalized_issue": "",
+            "issue_family": "",
+            "keep_flag": 0,
+            "coverage_pct": 0,
+            "issue_source": "",
+            "issue_confidence": "",
+        })
+
+    primary_df = pd.DataFrame(primary_results).rename(columns={
+        "issue_phrase": "top_issue_phrase",
+        "normalized_issue": "top_normalized_issue",
+        "issue_family": "top_issue_family",
+        "keep_flag": "top_issue_keep_flag",
+        "coverage_pct": "top_issue_coverage_pct",
+        "issue_source": "issue_source",
+        "issue_confidence": "issue_confidence",
+    })
+
+    secondary_df = pd.DataFrame(secondary_results).rename(columns={
+        "issue_phrase": "secondary_issue_phrase",
+        "normalized_issue": "secondary_normalized_issue",
+        "issue_family": "secondary_issue_family",
+        "keep_flag": "secondary_issue_keep_flag",
+        "coverage_pct": "secondary_issue_coverage_pct",
+        "issue_source": "secondary_issue_source",
+        "issue_confidence": "secondary_issue_confidence",
+    })
+
+    return pd.concat([df.reset_index(drop=True), primary_df, secondary_df], axis=1)
+
+
+def infer_issue_from_signals(row: pd.Series) -> tuple[str, str, str, int, str, str]:
+    """
+    Fallback when no friction phrase exists.
+    Uses modification phrases and broad heuristics.
+    Returns:
+    normalized_issue, issue_family, issue_phrase, keep_flag, issue_source, issue_confidence
+    """
+    mod1 = str(row.get("top_modification_phrase_1", "")).strip().lower()
+    mod2 = str(row.get("top_modification_phrase_2", "")).strip().lower()
+    mod_text = f"{mod1} | {mod2}"
+
+    pct_friction = pd.to_numeric(row.get("pct_friction", 0), errors="coerce")
+    pct_friction = 0 if pd.isna(pct_friction) else pct_friction
+
+    if any(token in mod_text for token in [
+        "reduce salty", "less salt", "reduce salt",
+        "less feta", "reduce feta",
+        "less olives", "reduce olives"
+    ]):
+        return "over-seasoned", "flavor", "", 1, "modification_inference", "medium"
+
+    if any(token in mod_text for token in [
+        "added lemon", "add lemon", "added lime", "add lime",
+        "add acidity", "more seasoning", "increase seasoning",
+        "more spice", "more spices", "added salt"
+    ]):
+        return "under-seasoned", "flavor", "", 1, "modification_inference", "medium"
+
+    if any(token in mod_text for token in [
+        "reduce liquid", "less liquid", "drain", "thicken"
+    ]):
+        return "too wet", "moisture", "", 1, "modification_inference", "medium"
+
+    if any(token in mod_text for token in [
+        "added broth", "more broth", "added stock", "more stock",
+        "added liquid", "more liquid", "added sauce", "more sauce"
+    ]):
+        return "too dry", "moisture", "", 1, "modification_inference", "medium"
+
+    if any(token in mod_text for token in ["cook longer", "bake longer"]):
+        return "undercooked", "cooking", "", 1, "modification_inference", "medium"
+
+    if any(token in mod_text for token in [
+        "cook less", "bake less", "reduced cook time", "reduced baking time"
+    ]):
+        return "overcooked", "cooking", "", 1, "modification_inference", "medium"
+
+    if pct_friction >= 50:
+        return "unresolved friction", "generic", "", 0, "friction_inference", "low"
+
+    return "", "", "", 0, "", ""
+
+
+def apply_issue_fallbacks(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill blank normalized issue fields using fallback inference.
+    """
+    df = df.copy()
+
+    mask = df["top_normalized_issue"].fillna("").astype(str).str.strip() == ""
+    if mask.any():
+        inferred = df.loc[mask].apply(infer_issue_from_signals, axis=1)
+        inferred_df = pd.DataFrame(
+            inferred.tolist(),
+            index=df.loc[mask].index,
+            columns=[
+                "top_normalized_issue",
+                "top_issue_family",
+                "top_issue_phrase",
+                "top_issue_keep_flag",
+                "issue_source",
+                "issue_confidence",
+            ],
+        )
+
+        for col in inferred_df.columns:
+            df.loc[mask, col] = inferred_df[col]
+
+        df.loc[mask, "top_issue_coverage_pct"] = np.where(
+            df.loc[mask, "top_issue_coverage_pct"].fillna(0).astype(float) > 0,
+            df.loc[mask, "top_issue_coverage_pct"],
+            0,
+        )
+
+    return df
+
+
+def get_display_issue(row: pd.Series) -> str:
+    """
+    UI-safe issue label.
+    """
+    issue = str(row.get("top_normalized_issue", "")).strip()
+    confidence = str(row.get("issue_confidence", "")).strip().lower()
+
+    if not issue:
+        return ""
+
+    if confidence in {"high", "medium"}:
+        return issue
+
+    if confidence == "low" and issue == "unresolved friction":
+        return "Needs manual review"
+
+    return issue
+
+
+def get_display_issue_reason(row: pd.Series) -> str:
+    """
+    Explanation for why the display label is shown this way.
+    """
+    issue = str(row.get("top_normalized_issue", "")).strip()
+    source = str(row.get("issue_source", "")).strip().lower()
+    confidence = str(row.get("issue_confidence", "")).strip().lower()
+
+    if not issue:
+        return ""
+
+    if source == "phrase" and confidence == "high":
+        return "Phrase-backed issue"
+
+    if source == "modification_inference" and confidence == "medium":
+        return "Inferred from user modifications"
+
+    if source == "friction_inference" and confidence == "low":
+        return "Strong friction signal but no recurring issue phrase"
+
+    return "Derived issue label"
+
+
+def get_display_issue_action_state(row: pd.Series) -> str:
+    """
+    Simple UI state for rendering.
+    """
+    issue = str(row.get("top_normalized_issue", "")).strip()
+    source = str(row.get("issue_source", "")).strip().lower()
+    confidence = str(row.get("issue_confidence", "")).strip().lower()
+
+    if not issue:
+        return ""
+
+    if source == "phrase" and confidence == "high":
+        return "show_normal"
+
+    if source == "modification_inference" and confidence == "medium":
+        return "show_inferred"
+
+    if source == "friction_inference" and confidence == "low":
+        return "show_manual_review"
+
+    return "show_normal"
+
+
+def get_why_it_matters(row: pd.Series) -> str:
+    """
+    Deterministic explanation of why this recipe deserves attention.
+    """
+    classification = str(row.get("classification", "")).strip()
+    action_state = str(row.get("display_issue_action_state", "")).strip()
+    display_issue = str(row.get("display_issue", "")).strip()
+
+    if classification == "High Opportunity":
+        if action_state == "show_manual_review":
+            return "High friction and strong user engagement suggest this recipe is worth reviewing, but the primary issue is still unclear."
+        return "High friction and strong user engagement suggest this recipe is worth fixing."
+
+    if classification == "Needs Improvement":
+        if action_state == "show_inferred":
+            return "Users appear to be adapting the recipe, but the issue still shows up often enough to justify revision."
+        if action_state == "show_manual_review":
+            return "Users are encountering recurring friction, but the issue needs manual review before making a recipe change."
+        return "Recurring user friction suggests this recipe could benefit from a targeted revision."
+
+    if classification == "Needs Fix":
+        if display_issue:
+            return "Users encounter recurring friction without a clear workaround, suggesting the base recipe likely needs revision."
+        return "Recurring friction suggests the base recipe likely needs revision."
+
+    if classification == "Performing Well":
+        return "User feedback suggests this recipe is working well with limited recurring friction."
+
+    return "There is not enough evidence yet to make a strong recommendation."
+
+
+def get_recommended_edit(row: pd.Series) -> str:
+    """
+    Deterministic editorial recommendation based on issue + confidence + common fix.
+    """
+    display_issue = str(row.get("display_issue", "")).strip()
+    issue_confidence = str(row.get("issue_confidence", "")).strip().lower()
+    mod1 = str(row.get("top_modification_phrase_1", "")).strip().lower()
+
+    if not display_issue:
+        return ""
+
+    if display_issue == "Needs manual review":
+        return "Review comment evidence manually to identify the primary issue before editing the recipe."
+
+    if display_issue == "under-seasoned":
+        if any(token in mod1 for token in ["added lemon", "add lemon", "added lime", "add lime"]):
+            return "Increase seasoning and add acidity to improve flavor balance."
+        if any(token in mod1 for token in ["more spice", "more spices", "increase seasoning", "added salt"]):
+            return "Increase salt, spices, or aromatics in the base recipe to improve flavor intensity."
+        return "Increase salt, spices, aromatics, or acidity to improve flavor balance."
+
+    if display_issue == "over-seasoned":
+        if any(token in mod1 for token in ["reduce salty", "less salt", "reduce salt"]):
+            return "Reduce salt in the base recipe to improve balance."
+        if any(token in mod1 for token in ["less feta", "reduce feta", "less olives", "reduce olives"]):
+            return "Reduce salty ingredients in the base recipe or rebalance their quantity."
+        return "Reduce salt or rebalance salty ingredients in the base recipe."
+
+    if display_issue == "too dry":
+        if any(token in mod1 for token in ["added broth", "more broth", "added stock", "more stock", "added sauce", "more sauce"]):
+            return "Increase moisture in the base recipe or reduce cooking intensity to improve final texture."
+        return "Increase moisture or reduce cooking intensity to improve final texture."
+
+    if display_issue == "too wet":
+        if any(token in mod1 for token in ["reduce liquid", "less liquid", "drain", "thicken"]):
+            return "Reduce liquid or increase thickening to improve final texture."
+        return "Reduce liquid or extend cooking time to improve final texture."
+
+    if display_issue == "too thick":
+        return "Increase liquid slightly or adjust ratios to improve consistency."
+
+    if display_issue == "too sweet":
+        return "Reduce sugar or rebalance sweetness with salt, acid, or bitter elements."
+
+    if display_issue == "too spicy":
+        return "Reduce heat level or rebalance spice with fat, sweetness, or acidity."
+
+    if display_issue == "too oily":
+        return "Reduce oil quantity or adjust ingredient balance to avoid a greasy final result."
+
+    if display_issue == "mushy texture":
+        return "Reduce moisture or cooking time to improve texture and structure."
+
+    if display_issue == "rubbery texture":
+        return "Reduce cooking intensity or adjust method to improve texture."
+
+    if display_issue == "grainy texture":
+        return "Review ingredient ratios and mixing method to improve texture consistency."
+
+    if display_issue == "overcooked":
+        return "Reduce cooking time or heat level to prevent overcooking."
+
+    if display_issue == "undercooked":
+        return "Increase cooking time or improve doneness guidance in the recipe."
+
+    if display_issue == "burnt":
+        return "Reduce cooking intensity or clarify timing and temperature guidance to prevent burning."
+
+    if display_issue == "structural failure":
+        return "Review ingredient ratios and method steps to improve stability and consistency."
+
+    if display_issue == "unresolved friction" and issue_confidence == "low":
+        return "Review comment evidence manually to identify the primary issue before editing the recipe."
+
+    return "Review comment evidence and revise the base recipe to address the main recurring issue."
+
+
 # =========================
 # MAIN
 # =========================
 def main() -> None:
-    # -------------------------
-    # Load inputs
-    # -------------------------
     recipe_master = load_csv(RECIPE_MASTER_PATH)
     recipe_features = load_csv(RECIPE_COMMENT_FEATURES_PATH)
     behavioral_wide = load_csv(BEHAVIORAL_PHRASES_WIDE_PATH)
+    global_friction_lookup = load_csv(GLOBAL_FRICTION_LOOKUP_PATH)
 
-    # -------------------------
-    # Standardize recipe_id
-    # -------------------------
     recipe_master = standardize_recipe_id(recipe_master, "recipe_master")
     recipe_features = standardize_recipe_id(recipe_features, "recipe_comment_features")
     behavioral_wide = standardize_recipe_id(behavioral_wide, "recipe_behavioral_phrases_wide")
 
-    # -------------------------
-    # Reshape behavioral file if needed
-    # -------------------------
     behavioral_wide = reshape_behavioral_wide(behavioral_wide)
 
-    # -------------------------
-    # Validate base uniqueness
-    # -------------------------
     assert_unique_recipe_ids(recipe_master, "recipe_master")
     assert_unique_recipe_ids(recipe_features, "recipe_comment_features")
     assert_unique_recipe_ids(behavioral_wide, "recipe_behavioral_phrases_wide_reshaped")
 
-    # -------------------------
-    # Merge
-    # -------------------------
     recipe_intelligence = (
         recipe_master
         .merge(recipe_features, on="recipe_id", how="left", suffixes=("", "_feat"))
@@ -228,9 +680,6 @@ def main() -> None:
 
     assert_unique_recipe_ids(recipe_intelligence, "recipe_intelligence")
 
-    # -------------------------
-    # Normalize / coalesce metadata fields
-    # -------------------------
     recipe_intelligence["title"] = coalesce_columns(
         recipe_intelligence,
         preferred="title",
@@ -266,9 +715,6 @@ def main() -> None:
         default=""
     )
 
-    # -------------------------
-    # Normalize volume / engagement fields
-    # -------------------------
     recipe_intelligence["page_views"] = coalesce_columns(
         recipe_intelligence,
         preferred="page_views",
@@ -311,9 +757,6 @@ def main() -> None:
         default=0
     )
 
-    # -------------------------
-    # Normalize behavioral percentage fields
-    # -------------------------
     recipe_intelligence["pct_made"] = coalesce_columns(
         recipe_intelligence,
         preferred="pct_made",
@@ -370,9 +813,6 @@ def main() -> None:
         default=0
     )
 
-    # -------------------------
-    # Normalize behavioral phrase columns after reshape
-    # -------------------------
     recipe_intelligence["top_friction_phrase_1"] = coalesce_columns(
         recipe_intelligence,
         preferred="top_friction_phrase_1",
@@ -457,9 +897,6 @@ def main() -> None:
         default=0
     )
 
-    # -------------------------
-    # Convenience flags
-    # -------------------------
     recipe_intelligence["has_behavioral_signal"] = (
         (pd.to_numeric(recipe_intelligence["pct_friction"], errors="coerce").fillna(0) > 0)
         | (pd.to_numeric(recipe_intelligence["pct_modification"], errors="coerce").fillna(0) > 0)
@@ -472,9 +909,10 @@ def main() -> None:
         | (recipe_intelligence["top_modification_phrase_1"].fillna("").astype(str).str.strip() != "")
     ).astype(int)
 
-    # -------------------------
-    # Type cleanup
-    # -------------------------
+    phrase_lookup = build_phrase_lookup(global_friction_lookup)
+    recipe_intelligence = derive_recipe_issue_fields(recipe_intelligence, phrase_lookup)
+    recipe_intelligence = apply_issue_fallbacks(recipe_intelligence)
+
     numeric_columns = [
         "page_views",
         "save_sessions_app",
@@ -496,6 +934,10 @@ def main() -> None:
         "top_modification_phrase_2_coverage_pct",
         "has_behavioral_signal",
         "has_behavioral_phrase",
+        "top_issue_keep_flag",
+        "top_issue_coverage_pct",
+        "secondary_issue_keep_flag",
+        "secondary_issue_coverage_pct",
     ]
 
     for col in numeric_columns:
@@ -511,14 +953,21 @@ def main() -> None:
         "top_friction_phrase_2",
         "top_modification_phrase_1",
         "top_modification_phrase_2",
+        "top_issue_phrase",
+        "top_normalized_issue",
+        "top_issue_family",
+        "issue_source",
+        "issue_confidence",
+        "secondary_issue_phrase",
+        "secondary_normalized_issue",
+        "secondary_issue_family",
+        "secondary_issue_source",
+        "secondary_issue_confidence",
     ]
 
     for col in text_columns:
         recipe_intelligence[col] = recipe_intelligence[col].fillna("").astype(str)
 
-    # -------------------------
-    # Convert percentages to proportions for scoring
-    # -------------------------
     recipe_intelligence["pct_made_prop"] = pct_to_prop(recipe_intelligence["pct_made"])
     recipe_intelligence["pct_modification_prop"] = pct_to_prop(recipe_intelligence["pct_modification"])
     recipe_intelligence["pct_substitution_prop"] = pct_to_prop(recipe_intelligence["pct_substitution"])
@@ -529,9 +978,6 @@ def main() -> None:
         recipe_intelligence["pct_will_prepare_again_true"]
     )
 
-    # -------------------------
-    # Scoring layer
-    # -------------------------
     recipe_intelligence["friction_score"] = recipe_intelligence["pct_friction_prop"]
 
     recipe_intelligence["engagement_score"] = np.log1p(
@@ -548,9 +994,46 @@ def main() -> None:
 
     recipe_intelligence["classification"] = recipe_intelligence.apply(classify_recipe, axis=1)
 
-    # -------------------------
-    # Final column selection
-    # -------------------------
+    recipe_intelligence["display_issue"] = recipe_intelligence.apply(get_display_issue, axis=1)
+    recipe_intelligence["display_issue_reason"] = recipe_intelligence.apply(get_display_issue_reason, axis=1)
+    recipe_intelligence["display_issue_action_state"] = recipe_intelligence.apply(
+        get_display_issue_action_state,
+        axis=1
+    )
+
+    recipe_intelligence["why_it_matters"] = recipe_intelligence.apply(get_why_it_matters, axis=1)
+    recipe_intelligence["recommended_edit"] = recipe_intelligence.apply(get_recommended_edit, axis=1)
+
+    text_columns = [
+        "title",
+        "author_name",
+        "brand",
+        "tags",
+        "url",
+        "top_friction_phrase_1",
+        "top_friction_phrase_2",
+        "top_modification_phrase_1",
+        "top_modification_phrase_2",
+        "top_issue_phrase",
+        "top_normalized_issue",
+        "top_issue_family",
+        "issue_source",
+        "issue_confidence",
+        "display_issue",
+        "display_issue_reason",
+        "display_issue_action_state",
+        "why_it_matters",
+        "recommended_edit",
+        "secondary_issue_phrase",
+        "secondary_normalized_issue",
+        "secondary_issue_family",
+        "secondary_issue_source",
+        "secondary_issue_confidence",
+    ]
+
+    for col in text_columns:
+        recipe_intelligence[col] = recipe_intelligence[col].fillna("").astype(str)
+
     final_columns = [
         "recipe_id",
         "title",
@@ -581,6 +1064,28 @@ def main() -> None:
         "top_friction_phrase_2",
         "top_friction_phrase_2_coverage_pct",
 
+        "top_normalized_issue",
+        "top_issue_family",
+        "top_issue_phrase",
+        "top_issue_coverage_pct",
+        "top_issue_keep_flag",
+        "issue_source",
+        "issue_confidence",
+
+        "display_issue",
+        "display_issue_reason",
+        "display_issue_action_state",
+        "why_it_matters",
+        "recommended_edit",
+
+        "secondary_normalized_issue",
+        "secondary_issue_family",
+        "secondary_issue_phrase",
+        "secondary_issue_coverage_pct",
+        "secondary_issue_keep_flag",
+        "secondary_issue_source",
+        "secondary_issue_confidence",
+
         "top_modification_phrase_1",
         "top_modification_phrase_1_coverage_pct",
         "top_modification_phrase_2",
@@ -599,29 +1104,23 @@ def main() -> None:
     recipe_intelligence = ensure_columns(recipe_intelligence, final_columns)
     recipe_intelligence = recipe_intelligence[final_columns]
 
-    # -------------------------
-    # Sort for readability
-    # -------------------------
     recipe_intelligence = recipe_intelligence.sort_values(
         by=["opportunity_score", "total_comments", "total_save_sessions", "page_views"],
         ascending=[False, False, False, False]
     ).reset_index(drop=True)
 
-    # -------------------------
-    # Save
-    # -------------------------
     Path(os.path.dirname(OUTPUT_PATH)).mkdir(parents=True, exist_ok=True)
     recipe_intelligence.to_csv(OUTPUT_PATH, index=False)
 
-    # -------------------------
-    # Validation summary
-    # -------------------------
     total_recipes = len(recipe_intelligence)
     recipes_with_comments = (recipe_intelligence["total_comments"] > 0).sum()
     recipes_with_behavioral_phrases = (recipe_intelligence["has_behavioral_phrase"] > 0).sum()
     recipes_with_behavioral_signal = (recipe_intelligence["has_behavioral_signal"] > 0).sum()
     recipes_with_saves = (recipe_intelligence["total_save_sessions"] > 0).sum()
     recipes_with_pageviews = (recipe_intelligence["page_views"] > 0).sum()
+    recipes_with_normalized_issue = (
+        recipe_intelligence["top_normalized_issue"].fillna("").astype(str).str.strip() != ""
+    ).sum()
 
     class_counts = recipe_intelligence["classification"].value_counts(dropna=False)
 
@@ -630,6 +1129,7 @@ def main() -> None:
     print(f"Recipes with comments: {recipes_with_comments:,}")
     print(f"Recipes with behavioral phrases: {recipes_with_behavioral_phrases:,}")
     print(f"Recipes with behavioral signals: {recipes_with_behavioral_signal:,}")
+    print(f"Recipes with normalized issue: {recipes_with_normalized_issue:,}")
     print(f"Recipes with saves: {recipes_with_saves:,}")
     print(f"Recipes with pageviews: {recipes_with_pageviews:,}")
 
@@ -657,7 +1157,10 @@ def main() -> None:
                 "recoverability_score",
                 "opportunity_score",
                 "classification",
-                "top_friction_phrase_1",
+                "display_issue",
+                "display_issue_reason",
+                "why_it_matters",
+                "recommended_edit",
                 "top_modification_phrase_1",
             ]
         ]

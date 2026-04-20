@@ -1,7 +1,9 @@
-import { RecipeComment } from "@/lib/types";
-
-const FALLBACK_ISSUE = "Multiple issues";
-const FALLBACK_FIX = "Varied modifications";
+import { DashboardRecipeRow, RecipeComment } from "@/lib/types";
+import {
+  getDisplayIssueText,
+  getRecommendedEditText,
+  isManualReviewState,
+} from "@/lib/utils/editorial";
 
 const STOPWORDS = new Set([
   "a",
@@ -98,26 +100,87 @@ function getEvidenceMatches(
 }
 
 export function getEvidenceCommentsForIssue(
-  issue: string,
+  recipe: Pick<DashboardRecipeRow, "displayIssue" | "displayIssueActionState" | "topIssuePhrase" | "topNormalizedIssue" | "issueSource">,
   comments: RecipeComment[],
 ): EvidenceMatch[] {
-  if (!issue || issue === FALLBACK_ISSUE) {
+  if (
+    isManualReviewState(recipe.displayIssueActionState) ||
+    recipe.issueSource === "friction_inference"
+  ) {
     return [];
   }
 
-  return getEvidenceMatches(issue, comments);
+  const phrases = [recipe.topIssuePhrase, getDisplayIssueText(recipe)]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  if (phrases.length === 0) {
+    return [];
+  }
+
+  const seen = new Map<string, EvidenceMatch>();
+
+  for (const phrase of phrases) {
+    for (const match of getEvidenceMatches(phrase, comments)) {
+      const existing = seen.get(match.comment.id);
+      if (!existing || match.score > existing.score) {
+        seen.set(match.comment.id, match);
+      }
+    }
+  }
+
+  return [...seen.values()]
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      const leftTime = left.comment.createdAt ? Date.parse(left.comment.createdAt) : 0;
+      const rightTime = right.comment.createdAt ? Date.parse(right.comment.createdAt) : 0;
+      return rightTime - leftTime;
+    })
+    .slice(0, 4);
 }
 
 export function getEvidenceCommentsForFix(
-  fix: string,
+  recipe: Pick<DashboardRecipeRow, "displayIssueActionState" | "recommendedEdit" | "topModificationPhrase">,
   comments: RecipeComment[],
   excludedIds: Set<string> = new Set(),
 ): EvidenceMatch[] {
-  if (!fix || fix === FALLBACK_FIX) {
+  if (isManualReviewState(recipe.displayIssueActionState)) {
     return [];
   }
 
-  return getEvidenceMatches(fix, comments, excludedIds);
+  const phrases = [recipe.topModificationPhrase, getRecommendedEditText(recipe)]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  if (phrases.length === 0) {
+    return [];
+  }
+
+  const seen = new Map<string, EvidenceMatch>();
+
+  for (const phrase of phrases) {
+    for (const match of getEvidenceMatches(phrase, comments, excludedIds)) {
+      const existing = seen.get(match.comment.id);
+      if (!existing || match.score > existing.score) {
+        seen.set(match.comment.id, match);
+      }
+    }
+  }
+
+  return [...seen.values()]
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      const leftTime = left.comment.createdAt ? Date.parse(left.comment.createdAt) : 0;
+      const rightTime = right.comment.createdAt ? Date.parse(right.comment.createdAt) : 0;
+      return rightTime - leftTime;
+    })
+    .slice(0, 4);
 }
 
 export function buildEvidenceExcerpt(text: string, matchedTerms: string[]): string {

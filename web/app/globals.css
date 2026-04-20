@@ -622,6 +622,17 @@ select {
   font-family: var(--font-body);
 }
 
+.decision-cell-copy {
+  line-height: 1.55;
+}
+
+.decision-inline-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .recipe-detail-hero {
   display: grid;
   gap: 16px;
@@ -695,6 +706,11 @@ select {
   box-shadow: 0 18px 44px rgba(55, 37, 21, 0.08);
 }
 
+.manual-review-card {
+  border-color: #e6d5b8;
+  box-shadow: 0 16px 36px rgba(98, 70, 24, 0.08);
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -708,11 +724,57 @@ select {
   letter-spacing: -0.04em;
 }
 
+.insight-priority-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.insight-helper-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  background: #ece6dd;
+  border: 1px solid #dfd5c7;
+  color: #72675a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.insight-helper-chip.caution {
+  background: #f4ead7;
+  border-color: #e6d5b8;
+  color: #8b6a2d;
+}
+
+.insight-lead-block {
+  padding: 18px;
+  border: 1px solid #ead7c6;
+  border-radius: 18px;
+  background: rgba(244, 221, 210, 0.26);
+}
+
 .insight-copy {
   margin-top: 12px;
   font-family: var(--font-body);
   font-size: 1.02rem;
   line-height: 1.6;
+}
+
+.insight-subcopy {
+  margin-top: 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.insight-subcopy.muted {
+  color: var(--muted);
+  font-size: 0.96rem;
 }
 
 .insight-summary-block {
@@ -782,6 +844,10 @@ select {
   border: 1px dashed var(--border);
   border-radius: 18px;
   background: rgba(248, 245, 239, 0.45);
+}
+
+.evidence-helper {
+  margin-top: -2px;
 }
 
 .evidence-mark {

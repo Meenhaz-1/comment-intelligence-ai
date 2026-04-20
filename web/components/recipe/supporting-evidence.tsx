@@ -1,5 +1,11 @@
 import { DashboardRecipeRow, RecipeComment } from "@/lib/types";
 import {
+  getDisplayIssueText,
+  getFixEvidenceEmptyState,
+  getIssueEvidenceEmptyState,
+  getRecommendedEditText,
+} from "@/lib/utils/editorial";
+import {
   buildEvidenceExcerpt,
   getEvidenceCommentsForFix,
   getEvidenceCommentsForIssue,
@@ -41,15 +47,18 @@ function highlightExcerpt(text: string, matchedTerms: string[]) {
 function EvidenceBlock({
   title,
   emptyLabel,
+  helperLabel,
   matches,
 }: {
   title: string;
   emptyLabel: string;
+  helperLabel?: string | null;
   matches: ReturnType<typeof getEvidenceCommentsForIssue>;
 }) {
   return (
     <div className="evidence-block">
       <div className="label">{title}</div>
+      {helperLabel ? <div className="detail-muted evidence-helper">{helperLabel}</div> : null}
       {matches.length === 0 ? (
         <div className="detail-muted evidence-empty">{emptyLabel}</div>
       ) : (
@@ -76,12 +85,17 @@ function EvidenceBlock({
 }
 
 export function SupportingEvidence({ recipe, comments }: SupportingEvidenceProps) {
-  const issueMatches = getEvidenceCommentsForIssue(recipe.mainIssue, comments);
+  const displayIssue = getDisplayIssueText(recipe);
+  const recommendedEdit = getRecommendedEditText(recipe);
+  const issueMatches = getEvidenceCommentsForIssue(recipe, comments);
   const fixMatches = getEvidenceCommentsForFix(
-    recipe.commonFix,
+    recipe,
     comments,
     new Set(issueMatches.map((match) => match.comment.id)),
   );
+  const showIssueSourceNote = recipe.issueSource === "modification_inference";
+  const issueHelper =
+    showIssueSourceNote ? "Issue inferred from recurring user modifications" : null;
 
   return (
     <section className="card card-pad detail-section evidence-section">
@@ -92,14 +106,15 @@ export function SupportingEvidence({ recipe, comments }: SupportingEvidenceProps
 
       <div className="evidence-grid">
         <EvidenceBlock
-          emptyLabel="No directly matched comments found for this issue yet."
+          emptyLabel={getIssueEvidenceEmptyState(recipe)}
+          helperLabel={issueHelper}
           matches={issueMatches}
           title="Evidence for Main Issue"
         />
         <EvidenceBlock
-          emptyLabel="No directly matched comments found for this workaround yet."
+          emptyLabel={getFixEvidenceEmptyState(recipe)}
           matches={fixMatches}
-          title="Evidence for Common Fix"
+          title={`Evidence for ${recommendedEdit ? "Recommended Edit" : "Workaround"}`}
         />
       </div>
     </section>

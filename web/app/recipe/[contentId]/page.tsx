@@ -57,7 +57,7 @@ export default async function RecipeDetailPage({ params }: PageProps) {
 
       <section className="detail-section secondary-section">
         <div className="secondary-section-head">
-          <div className="label">Supporting Evidence</div>
+          <div className="label">Metrics</div>
           <p className="section-copy secondary-copy">
             Performance and discussion context for the editorial readout above.
           </p>
@@ -86,7 +86,7 @@ export default async function RecipeDetailPage({ params }: PageProps) {
             footnote="Discussion volume from comments"
             icon="💬"
             label="Total Comments"
-            value={formatNumber(recipe.commentsCount)}
+            value={formatNumber(recipe.totalComments)}
           />
         </section>
       </section>
