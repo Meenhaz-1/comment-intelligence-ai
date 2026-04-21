@@ -1,4 +1,4 @@
-# Recipe Comment Intelligence
+# Comment Intelligence
 
 This project turns recipe comments into structured product and editorial signals.
 

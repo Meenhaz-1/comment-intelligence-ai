@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PageShell } from "@/components/layout/page-shell";
+import { AppLink } from "@/components/navigation/navigation-progress";
 import { CommentsPanel } from "@/components/recipe/comments-panel";
 import { EditorialInsightCard } from "@/components/recipe/editorial-insight-card";
+import { RagExploration } from "@/components/recipe/rag-exploration";
 import { SupportingEvidence } from "@/components/recipe/supporting-evidence";
 import { getRecipeDetail } from "@/lib/data/recipe-master";
 import { formatNumber } from "@/lib/utils/format-number";
@@ -28,9 +29,9 @@ export default async function RecipeDetailPage({ params }: PageProps) {
     <PageShell>
       <header className="recipe-detail-hero">
         <div className="dashboard-topbar">
-          <Link href={`/editor/${recipe.editorId}`} className="back-link">
+          <AppLink href={`/editor/${recipe.editorId}`} className="back-link">
             {"← Back to Recipe Creator"}
-          </Link>
+          </AppLink>
         </div>
         <div className="eyebrow">Recipe Notebook</div>
         <h1 className="recipe-detail-title">{recipe.title}</h1>
@@ -53,7 +54,13 @@ export default async function RecipeDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      <EditorialInsightCard recipe={recipe} />
+      <EditorialInsightCard comments={comments} recipe={recipe} />
+
+      <SupportingEvidence comments={comments} recipe={recipe} />
+
+      <RagExploration recipe={recipe} />
+
+      <CommentsPanel comments={comments} recipe={recipe} />
 
       <section className="detail-section secondary-section">
         <div className="secondary-section-head">
@@ -90,8 +97,6 @@ export default async function RecipeDetailPage({ params }: PageProps) {
           />
         </section>
       </section>
-
-      <SupportingEvidence comments={comments} recipe={recipe} />
 
       <section className="card card-pad detail-section">
         <div className="detail-section-head">
@@ -132,13 +137,6 @@ export default async function RecipeDetailPage({ params }: PageProps) {
           </div>
         </div>
       </section>
-
-      <CommentsPanel
-        comments={comments}
-        keywordBuckets={recipe.keywordBuckets}
-        topKeywords={recipe.topKeywords}
-        topPhrases={recipe.topPhrases}
-      />
     </PageShell>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useNavigationProgress } from "@/components/navigation/navigation-progress";
 import { Editor } from "@/lib/types";
 
 type EditorSelectCardProps = {
@@ -14,7 +14,7 @@ export function EditorSelectCard({
   editors,
   ctaLabel,
 }: EditorSelectCardProps) {
-  const router = useRouter();
+  const { navigate } = useNavigationProgress();
   const [selectedEditorId, setSelectedEditorId] = useState("");
   const [query, setQuery] = useState("");
 
@@ -23,7 +23,7 @@ export function EditorSelectCard({
       return;
     }
 
-    router.push(`/editor/${selectedEditorId}`);
+    navigate(`/editor/${selectedEditorId}`);
   }
 
   const normalizedQuery = query.trim().toLowerCase();

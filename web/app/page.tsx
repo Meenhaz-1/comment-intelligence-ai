@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import { EditorSelectCard } from "@/components/homepage/editor-select-card";
 import { HeroHeader } from "@/components/homepage/hero-header";
 import { ComingSoonGrid } from "@/components/homepage/coming-soon-grid";
 import { PageShell } from "@/components/layout/page-shell";
+import { AppLink } from "@/components/navigation/navigation-progress";
 import { getEditors } from "@/lib/data/editors";
 
 export default function HomePage() {
@@ -35,9 +34,9 @@ export default function HomePage() {
       {sampleEditor ? (
         <div style={{ marginTop: 28, textAlign: "center", color: "var(--muted)" }}>
           Quick start with{" "}
-          <Link href={`/editor/${sampleEditor.id}`} style={{ fontWeight: 700 }}>
+          <AppLink href={`/editor/${sampleEditor.id}`} style={{ fontWeight: 700 }}>
             {sampleEditor.name}
-          </Link>
+          </AppLink>
           {" as a Recipe Creator"}
           .
         </div>

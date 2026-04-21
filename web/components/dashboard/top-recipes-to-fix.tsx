@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
+import { useNavigationProgress } from "@/components/navigation/navigation-progress";
 import { DashboardRecipeRow } from "@/lib/types";
 import {
   formatOpportunityScore,
@@ -14,7 +13,7 @@ import {
 import { TagChip } from "./tag-chip";
 
 export function TopRecipesToFix({ recipes }: { recipes: DashboardRecipeRow[] }) {
-  const router = useRouter();
+  const { navigate } = useNavigationProgress();
 
   return (
     <section className="card table-card decision-card">
@@ -35,6 +34,14 @@ export function TopRecipesToFix({ recipes }: { recipes: DashboardRecipeRow[] }) 
           </div>
         ) : (
           <table className="recipes-table decision-table">
+            <colgroup>
+              <col className="decision-col-title" />
+              <col className="decision-col-priority" />
+              <col className="decision-col-score" />
+              <col className="decision-col-issue" />
+              <col className="decision-col-edit" />
+              <col className="decision-col-comments" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Recipe</th>
@@ -55,11 +62,11 @@ export function TopRecipesToFix({ recipes }: { recipes: DashboardRecipeRow[] }) 
                   <tr
                     className="decision-row"
                     key={recipe.contentId}
-                    onClick={() => router.push(`/recipe/${recipe.contentId}`)}
+                    onClick={() => navigate(`/recipe/${recipe.contentId}`)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        router.push(`/recipe/${recipe.contentId}`);
+                        navigate(`/recipe/${recipe.contentId}`);
                       }
                     }}
                     tabIndex={0}
@@ -68,7 +75,7 @@ export function TopRecipesToFix({ recipes }: { recipes: DashboardRecipeRow[] }) 
                       <div className="decision-title-wrap">
                         <div className="top-rank">{index + 1}</div>
                         <div>
-                          <div className="recipe-title">{recipe.title}</div>
+                          <div className="recipe-title clamped-copy clamped-copy-2">{recipe.title}</div>
                           <div className="decision-meta">
                             {recipe.brand ?? "Recipe creator portfolio"}
                           </div>
@@ -80,13 +87,13 @@ export function TopRecipesToFix({ recipes }: { recipes: DashboardRecipeRow[] }) 
                     </td>
                     <td className="metric-cell">{formatOpportunityScore(recipe.opportunityScore)}</td>
                     <td>
-                      <div className="decision-cell-copy">{displayIssue || "Needs manual review"}</div>
+                      <div className="decision-cell-copy clamped-copy clamped-copy-3">{displayIssue || "Needs manual review"}</div>
                       {inferredBadge ? (
-                        <div className="decision-inline-note">{inferredBadge}</div>
+                        <div className="decision-inline-note clamped-copy clamped-copy-2">{inferredBadge}</div>
                       ) : null}
                     </td>
                     <td title={recommendedEdit || undefined}>
-                      <div className="decision-cell-copy">
+                      <div className="decision-cell-copy clamped-copy clamped-copy-4">
                         {truncateText(recommendedEdit, 88) || "Review comment evidence manually"}
                       </div>
                     </td>

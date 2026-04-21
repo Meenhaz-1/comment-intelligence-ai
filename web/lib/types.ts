@@ -4,6 +4,78 @@ export type Editor = {
   recipeCount: number;
 };
 
+export type EvidenceStrength = "none" | "low" | "medium" | "high";
+
+export type RecipeMetadata = {
+  title: string | null;
+  author: string | null;
+  brand: string | null;
+  tags: string[];
+  url: string | null;
+};
+
+export type RecipeDecisionIssue = {
+  displayIssue: string | null;
+  issueFamily: string | null;
+  topIssuePhrase: string | null;
+  secondaryIssuePhrase: string | null;
+  issueSource: string | null;
+  issueConfidence: string | null;
+  displayIssueReason: string | null;
+  displayIssueActionState: string | null;
+};
+
+export type RecipeDecision = {
+  classification: string | null;
+  opportunityScore: number | null;
+  issue: RecipeDecisionIssue;
+  recommendedEdit: string | null;
+  recommendedEditV2: string | null;
+  recommendedEditSource: string | null;
+  whyItMatters: string | null;
+  fixConfidence: string | null;
+  fixSignalSummary: string | null;
+  topCanonicalFix1: string | null;
+  topCanonicalFix2: string | null;
+  topFixFamily1: string | null;
+  topFixFamily2: string | null;
+};
+
+export type RecipeSignals = {
+  totalComments: number;
+  eligibleComments: number | null;
+  pctFriction: number | null;
+  pctModification: number | null;
+  pctRepeatIntent: number | null;
+  engagementLevel: string | null;
+};
+
+export type RecipeEvidence = {
+  issueEvidenceComments: string[];
+  fixEvidenceComments: string[];
+  mixedEvidenceComments: string[];
+  adaptationComments: string[];
+  hasIssueEvidence: boolean;
+  hasFixEvidence: boolean;
+  hasMixedEvidence: boolean;
+  totalSelectedEvidenceComments: number;
+};
+
+export type RecipeLlmReadiness = {
+  llmReadyForSummary: boolean | null;
+  llmReadyForRag: boolean | null;
+  evidenceStrength: EvidenceStrength | null;
+};
+
+export type RecipeLlmEval = {
+  overallScore: number | null;
+  groundedness: number | null;
+  correctness: number | null;
+  actionability: number | null;
+  specificity: number | null;
+  flag: string | null;
+};
+
 export type RecipeRow = {
   contentId: string;
   editorId: string;
@@ -35,6 +107,22 @@ export type RecipeRow = {
   authorName: string;
   authorId: string | null;
   hasSaveFeature: boolean;
+  metadata: RecipeMetadata;
+  decision: RecipeDecision;
+  signals: RecipeSignals;
+  evidence: RecipeEvidence | null;
+  llmReadiness: RecipeLlmReadiness | null;
+  llmEditorSummary: string | null;
+  llmEval: RecipeLlmEval | null;
+  showLlmSummary: boolean | null;
+  recommendedEditV2: string | null;
+  recommendedEditSource: string | null;
+  fixConfidence: string | null;
+  fixSignalSummary: string | null;
+  topCanonicalFix1: string | null;
+  topCanonicalFix2: string | null;
+  topFixFamily1: string | null;
+  topFixFamily2: string | null;
 };
 
 export type DashboardRecipeRow = RecipeRow & {
@@ -73,4 +161,29 @@ export type EditorDashboardData = {
 export type RecipeDetailData = {
   recipe: DashboardRecipeRow;
   comments: RecipeComment[];
+};
+
+export type RagQueryType = "issue" | "fix" | "mixed" | "editorial";
+
+export type RagSupportingEvidenceItem = {
+  id: string;
+  text: string;
+  label?: string;
+  chunkType?: string;
+};
+
+export type RagAnswer = {
+  question: string;
+  answer: string;
+  queryType: RagQueryType;
+  confidence?: "high" | "medium" | "low";
+  evidenceStrength?: EvidenceStrength;
+  supportingEvidence: RagSupportingEvidenceItem[];
+};
+
+export type EditorialSummary = {
+  mostCommonComplaint: string | null;
+  mostCommonWorkaround: string | null;
+  feedbackConsistency: string | null;
+  strongestComments: RagSupportingEvidenceItem[];
 };

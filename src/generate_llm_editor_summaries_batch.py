@@ -22,6 +22,7 @@
 #   export OPENAI_API_KEY=...
 
 from __future__ import annotations
+from urllib import response
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -53,8 +54,23 @@ Rules:
 - Write a maximum of 2 sentences.
 - Prefer 1 sentence when possible.
 - Use only the information provided.
+- You MUST base the issue only on evidence comments.
+- If the evidence contains specific phrases (e.g., "too salty", "dry"), you must use them directly.
+- Do not generalize beyond the evidence.
+- Do NOT use phrases like:
+    "may need attention"
+    "could benefit"
+    "mixed feedback"
+    "deserves review"
 - Do not speculate.
+- Sentence 1: clear issue (must include a concrete issue word)
+- Sentence 2 (optional): how users fix it
+- Every summary MUST contain a concrete issue (e.g., too salty, bland, dry)
+- If no issue is found, say: "Feedback is mostly positive with minor user adjustments; no clear issue identified."
 - Do not invent issues, fixes, or user behavior.
+- Do not infer new issues.
+- Do not combine unrelated issues.
+- Prefer the most repeated issue in evidence.
 - Do not use internal model language such as "friction", "engagement", "recoverability", "classification", or "opportunity".
 - Do not say "this recipe shows" or "this recipe is a high-opportunity candidate".
 - Write in plain cooking/editorial language such as "too salty", "too sweet", "dry", "bland", "curdled", "crumbly", "confusing", or "over-seasoned".
@@ -104,6 +120,34 @@ def require_api_key() -> None:
         print("ERROR: OPENAI_API_KEY is not set.", file=sys.stderr)
         sys.exit(1)
 
+def extract_output_text_from_batch_row(row: dict[str, Any]) -> str:
+    response = row.get("response", {})
+    body = response.get("body", {}) if isinstance(response, dict) else {}
+
+    # Preferred path for Batch Responses output
+    output = body.get("output", [])
+    if isinstance(output, list):
+        chunks: list[str] = []
+
+        for item in output:
+            content = item.get("content", [])
+            if not isinstance(content, list):
+                continue
+
+            for c in content:
+                text = c.get("text")
+                if isinstance(text, str) and text.strip():
+                    chunks.append(text.strip())
+
+        if chunks:
+            return "\n".join(chunks)
+
+    # Older / alternate fallback
+    output_text = body.get("output_text")
+    if isinstance(output_text, str) and output_text.strip():
+        return output_text.strip()
+
+    return ""
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -236,7 +280,10 @@ def save_file_content(client: OpenAI, file_id: str, output_path: Path) -> None:
 
 
 def extract_json_from_text(text: str) -> dict[str, Any]:
-    text = text.strip()
+    text = (text or "").strip()
+
+    if not text:
+        raise ValueError("Empty model output")
 
     try:
         parsed = json.loads(text)
@@ -249,11 +296,15 @@ def extract_json_from_text(text: str) -> dict[str, Any]:
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
         candidate = text[start:end + 1]
-        parsed = json.loads(candidate)
-        if isinstance(parsed, dict):
-            return parsed
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
 
-    raise ValueError("Model output was not valid JSON")
+    # Last resort: keep the raw text instead of failing the whole row
+    return {"llm_editor_summary": text}
 
 
 def normalize_summary(value: Any) -> str:
@@ -286,7 +337,7 @@ def parse_batch_raw_results(raw_output_path: Path, final_output_path: Path) -> N
         body = response.get("body", {}) if isinstance(response, dict) else {}
 
         model = body.get("model")
-        output_text = body.get("output_text", "")
+        output_text = extract_output_text_from_batch_row(row)
 
         try:
             parsed = extract_json_from_text(output_text)

@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AppLink } from "@/components/navigation/navigation-progress";
 import { DashboardRecipeRow } from "@/lib/types";
 import { formatCompactNumber } from "@/lib/utils/format-number";
 
@@ -31,9 +30,9 @@ export function TopRecipesCard({
           <div className="top-item" key={item.contentId}>
             <div className="top-rank">{index + 1}</div>
             <div>
-              <Link className="top-title top-link" href={`/recipe/${item.contentId}`}>
+              <AppLink className="top-title top-link" href={`/recipe/${item.contentId}`}>
                 {item.title}
-              </Link>
+              </AppLink>
               <div className="top-meta">
                 {item[primaryMetricKey] === null
                   ? "N/A"

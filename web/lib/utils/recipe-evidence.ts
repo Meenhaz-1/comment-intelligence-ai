@@ -1,4 +1,4 @@
-import { DashboardRecipeRow, RecipeComment } from "@/lib/types";
+import { DashboardRecipeRow, RagSupportingEvidenceItem, RecipeComment } from "@/lib/types";
 import {
   getDisplayIssueText,
   getRecommendedEditText,
@@ -41,6 +41,11 @@ export type EvidenceMatch = {
   comment: RecipeComment;
   matchedTerms: string[];
   score: number;
+};
+
+type EvidenceCollections = {
+  issueEvidenceItems: RagSupportingEvidenceItem[];
+  fixEvidenceItems: RagSupportingEvidenceItem[];
 };
 
 function normalizeText(value: string): string {
@@ -205,4 +210,80 @@ export function buildEvidenceExcerpt(text: string, matchedTerms: string[]): stri
   const excerpt = trimmed.slice(start, end).trim();
 
   return `${start > 0 ? "... " : ""}${excerpt}${end < trimmed.length ? " ..." : ""}`;
+}
+
+function buildFallbackIssueEvidence(
+  recipe: DashboardRecipeRow,
+  comments: RecipeComment[],
+): RagSupportingEvidenceItem[] {
+  return getEvidenceCommentsForIssue(recipe, comments).map((match) => ({
+    id: match.comment.id,
+    text: buildEvidenceExcerpt(match.comment.text, match.matchedTerms),
+    label: "Matched comment",
+    chunkType: "Issue evidence",
+  }));
+}
+
+function buildFallbackFixEvidence(
+  recipe: DashboardRecipeRow,
+  comments: RecipeComment[],
+  excludedIds: Set<string>,
+): RagSupportingEvidenceItem[] {
+  return getEvidenceCommentsForFix(recipe, comments, excludedIds).map((match) => ({
+    id: match.comment.id,
+    text: buildEvidenceExcerpt(match.comment.text, match.matchedTerms),
+    label: "Matched comment",
+    chunkType: "Fix signal",
+  }));
+}
+
+function buildBackendEvidenceItems(
+  title: string,
+  items: string[],
+): RagSupportingEvidenceItem[] {
+  return items.map((text, index) => ({
+    id: `${title}-${index}`,
+    text,
+    label: "Selected comment",
+    chunkType: title,
+  }));
+}
+
+export function getSupportingEvidenceCollections(
+  recipe: DashboardRecipeRow,
+  comments: RecipeComment[],
+): EvidenceCollections {
+  const issueEvidenceItems =
+    recipe.evidence?.issueEvidenceComments?.length
+      ? buildBackendEvidenceItems("Issue evidence", recipe.evidence.issueEvidenceComments)
+      : buildFallbackIssueEvidence(recipe, comments);
+  const fixEvidenceItems =
+    recipe.evidence?.fixEvidenceComments?.length
+      ? buildBackendEvidenceItems("Fix signal", recipe.evidence.fixEvidenceComments)
+      : buildFallbackFixEvidence(
+          recipe,
+          comments,
+          new Set(issueEvidenceItems.map((item) => item.id)),
+        );
+
+  return { issueEvidenceItems, fixEvidenceItems };
+}
+
+export function getStrongestEvidenceItems(
+  recipe: DashboardRecipeRow,
+  comments: RecipeComment[],
+  limit = 3,
+): RagSupportingEvidenceItem[] {
+  const { issueEvidenceItems, fixEvidenceItems } = getSupportingEvidenceCollections(recipe, comments);
+  const ordered = [...issueEvidenceItems, ...fixEvidenceItems];
+  const seen = new Set<string>();
+
+  return ordered.filter((item) => {
+    if (seen.has(item.text)) {
+      return false;
+    }
+
+    seen.add(item.text);
+    return true;
+  }).slice(0, limit);
 }

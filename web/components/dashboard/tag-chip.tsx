@@ -3,7 +3,7 @@ export function TagChip({
   tone = "default",
 }: {
   label: string;
-  tone?: "default" | "insight";
+  tone?: "default" | "insight" | "success";
 }) {
   return <span className={`tag-chip ${tone}`}>{label}</span>;
 }

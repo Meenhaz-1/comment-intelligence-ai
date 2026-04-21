@@ -65,6 +65,7 @@ Rules:
 - Always describe the issue in plain cooking language (e.g., too salty, bland, dry).
 - If issue is unclear, summarize the most common themes in the evidence.
 - Do not infer engagement level or metrics unless explicitly stated.
+- Avoid weak phrasing like "may need" or "likely deserves attention"; be direct when evidence is clear.
 - Do not speculate.
 - Do not invent issues or fixes.
 - If evidence is incomplete, be cautious.

@@ -197,6 +197,52 @@ select {
   color: var(--text);
 }
 
+.navigation-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #d6723b 0%, #efb36b 45%, #e7d7a8 100%);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.navigation-progress.active {
+  opacity: 1;
+  animation: navigation-progress-bar 1.15s ease-in-out infinite;
+}
+
+.navigation-status {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.94);
+  border: 1px solid rgba(214, 114, 59, 0.2);
+  box-shadow: 0 14px 28px rgba(55, 37, 21, 0.08);
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.navigation-status.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .select-input:focus,
 .text-input:focus,
 .button:focus {
@@ -424,8 +470,9 @@ select {
 
 .table-filter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(180px, 0.7fr));
-  gap: 12px;
+  grid-template-columns: minmax(260px, 1.4fr) repeat(4, minmax(190px, 0.78fr));
+  gap: 14px;
+  align-items: stretch;
 }
 
 .comments-search-row {
@@ -439,7 +486,8 @@ select {
 .recipes-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 840px;
+  min-width: 1180px;
+  table-layout: fixed;
 }
 
 .recipes-table th,
@@ -485,15 +533,24 @@ select {
 
 .recipes-table td {
   background: rgba(255, 253, 249, 0.82);
+  vertical-align: top;
 }
 
 .recipe-title {
   font-weight: 700;
 }
 
+.dashboard-recipe-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.3;
+}
+
 .recipe-link {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -531,6 +588,38 @@ select {
   border-color: #ebcdbf;
   color: #8a4d33;
   font-weight: 700;
+}
+
+.tag-chip.success {
+  background: var(--success-bg);
+  border-color: #cfe0cb;
+  color: var(--success-text);
+  font-weight: 700;
+}
+
+.confidence-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.confidence-pill.high {
+  background: #e4f0e0;
+  color: #315a28;
+}
+
+.confidence-pill.medium {
+  background: #f4ead7;
+  color: #8b6a2d;
+}
+
+.confidence-pill.low {
+  background: #f1e3df;
+  color: #985845;
 }
 
 .metric-cell {
@@ -576,13 +665,22 @@ select {
 }
 
 .recipe-insight-chip {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .table-secondary {
   color: var(--muted);
   font-family: var(--font-body);
-  font-size: 0.96rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.table-tertiary {
+  margin-top: 6px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .decision-card {
@@ -620,17 +718,97 @@ select {
   margin-top: 6px;
   color: var(--muted);
   font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .decision-cell-copy {
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .decision-inline-note {
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 700;
+  line-height: 1.4;
+}
+
+.ai-status-cell {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.clamped-copy {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.clamped-copy-2 {
+  -webkit-line-clamp: 2;
+}
+
+.clamped-copy-3 {
+  -webkit-line-clamp: 3;
+}
+
+.clamped-copy-4 {
+  -webkit-line-clamp: 4;
+}
+
+.recipes-col-title {
+  width: 24%;
+}
+
+.recipes-col-priority {
+  width: 14%;
+}
+
+.recipes-col-issue {
+  width: 17%;
+}
+
+.recipes-col-edit {
+  width: 21%;
+}
+
+.recipes-col-ai {
+  width: 10%;
+}
+
+.recipes-col-score {
+  width: 8%;
+}
+
+.recipes-col-comments {
+  width: 6%;
+}
+
+.decision-col-title {
+  width: 28%;
+}
+
+.decision-col-priority {
+  width: 14%;
+}
+
+.decision-col-score {
+  width: 12%;
+}
+
+.decision-col-issue {
+  width: 18%;
+}
+
+.decision-col-edit {
+  width: 20%;
+}
+
+.decision-col-comments {
+  width: 8%;
 }
 
 .recipe-detail-hero {
@@ -706,6 +884,10 @@ select {
   box-shadow: 0 18px 44px rgba(55, 37, 21, 0.08);
 }
 
+.insight-card.confidence-low {
+  border-color: #e8d7cd;
+}
+
 .manual-review-card {
   border-color: #e6d5b8;
   box-shadow: 0 16px 36px rgba(98, 70, 24, 0.08);
@@ -715,6 +897,20 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px 28px;
+}
+
+.insight-grid.detail {
+  align-items: start;
+}
+
+.insight-section + .insight-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.issue-grid {
+  align-items: start;
 }
 
 .insight-value {
@@ -729,6 +925,28 @@ select {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.insight-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.insight-hero {
+  padding: 22px 24px;
+  border: 1px solid #ead7c6;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(244, 221, 210, 0.34), rgba(255, 248, 241, 0.9));
+}
+
+.insight-lead-copy {
+  margin-top: 10px;
+  font-size: 1.42rem;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
 .insight-helper-chip {
@@ -757,6 +975,13 @@ select {
   background: rgba(244, 221, 210, 0.26);
 }
 
+.insight-panel {
+  padding: 18px;
+  border: 1px solid rgba(220, 201, 184, 0.8);
+  border-radius: 18px;
+  background: rgba(255, 253, 249, 0.65);
+}
+
 .insight-copy {
   margin-top: 12px;
   font-family: var(--font-body);
@@ -783,12 +1008,43 @@ select {
   border-top: 1px solid var(--border);
 }
 
+.insight-summary-block.inline {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  grid-column: 1 / -1;
+}
+
 .insight-summary {
   margin: 12px 0 0;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 1.08rem;
   line-height: 1.72;
+}
+
+.insight-summary.compact {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.ai-summary-card {
+  background: rgba(255, 253, 249, 0.94);
+}
+
+.ai-summary-copy {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.72;
+}
+
+.ai-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
 }
 
 .evidence-section {
@@ -838,6 +1094,16 @@ select {
   color: var(--text);
 }
 
+.evidence-toggle {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .evidence-empty {
   min-height: 84px;
   padding: 18px;
@@ -862,6 +1128,117 @@ select {
   box-shadow: 0 10px 24px rgba(55, 37, 21, 0.04);
 }
 
+.rag-section {
+  background: rgba(252, 249, 244, 0.94);
+}
+
+.rag-intro {
+  margin-top: 0;
+}
+
+.rag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rag-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #ddcfbe;
+  background: rgba(255, 253, 249, 0.95);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.rag-chip:hover,
+.rag-chip.active {
+  background: #f4ead7;
+  border-color: #d6b48f;
+}
+
+.rag-chip:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.rag-empty-state,
+.rag-loading-state,
+.rag-error-state {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 253, 249, 0.88);
+}
+
+.rag-empty-copy {
+  margin: 8px 0 0;
+}
+
+.rag-loading-bar {
+  width: 100%;
+  height: 8px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(214, 114, 59, 0.18), rgba(214, 114, 59, 0.55), rgba(214, 114, 59, 0.18));
+  background-size: 200% 100%;
+  animation: rag-loading 1.1s linear infinite;
+}
+
+.rag-answer-panel {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid #e4d5c5;
+  background: rgba(255, 253, 249, 0.95);
+}
+
+.rag-answer-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rag-answer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.rag-question {
+  margin-top: 8px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.rag-answer-copy {
+  margin: 0;
+  font-family: var(--font-body);
+  line-height: 1.7;
+}
+
+.secondary-button {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid #d9b698;
+}
+
+.secondary-button:hover {
+  background: rgba(244, 221, 210, 0.28);
+}
+
 .detail-tag-row {
   margin-top: 12px;
 }
@@ -875,6 +1252,26 @@ select {
   display: grid;
   gap: 12px;
   padding-bottom: 24px;
+}
+
+.editorial-summary-section {
+  background: rgba(255, 253, 249, 0.92);
+}
+
+.editorial-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.editorial-summary-wide {
+  grid-column: 1 / -1;
+}
+
+.editorial-strongest-comments {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .comments-list {
@@ -921,6 +1318,36 @@ select {
   white-space: pre-line;
 }
 
+.comment-body.collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.comment-body.expanded {
+  display: block;
+}
+
+.comment-expand-toggle {
+  margin-top: 8px;
+}
+
+.table-load-more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 28px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 253, 249, 0.82);
+}
+
+.table-load-more-button {
+  min-height: 40px;
+}
+
 .comment-chip-row {
   margin-top: 14px;
 }
@@ -954,7 +1381,36 @@ select {
 
   .table-filter-row,
   .insight-grid,
-  .evidence-grid {
+  .evidence-grid,
+  .editorial-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .recipes-table {
+    min-width: 980px;
+  }
+}
+
+@keyframes navigation-progress-bar {
+  0% {
+    transform: scaleX(0.08);
+  }
+
+  50% {
+    transform: scaleX(0.62);
+  }
+
+  100% {
+    transform: scaleX(0.94);
+  }
+}
+
+@keyframes rag-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
   }
 }
