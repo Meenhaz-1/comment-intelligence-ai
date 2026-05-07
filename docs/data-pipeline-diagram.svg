@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="860" viewBox="0 0 1600 860" role="img" aria-labelledby="title desc">
+  <title id="title">Epicurious Comment Intelligence Data Pipeline</title>
+  <desc id="desc">A focused data pipeline diagram showing raw data sources, Python processing stages, generated artifacts, and optional AI enrichment outputs.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7f2ea"/>
+      <stop offset="100%" stop-color="#efe6d8"/>
+    </linearGradient>
+    <linearGradient id="stage" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#245862"/>
+      <stop offset="100%" stop-color="#183c43"/>
+    </linearGradient>
+    <linearGradient id="artifact" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f3eadc"/>
+      <stop offset="100%" stop-color="#dfd1bc"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2c3a3f"/>
+    </marker>
+    <style>
+      .title { font: 700 32px Georgia, "Times New Roman", serif; fill: #1d2426; }
+      .subtitle { font: 400 16px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #4d585c; }
+      .section { font: 700 18px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #1d2426; letter-spacing: 0.08em; text-transform: uppercase; }
+      .darkTitle { font: 700 19px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #fff; }
+      .darkBody { font: 400 14px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #e8f1f2; }
+      .cardTitle { font: 700 18px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #1d2426; }
+      .cardBody { font: 400 14px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #3d474b; }
+      .arrowLabel { font: 600 13px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #2c3a3f; }
+      .note { font: 400 13px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #596568; }
+      .pill { font: 700 12px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #214e57; letter-spacing: 0.06em; }
+      .shadow { filter: drop-shadow(0 10px 22px rgba(35, 42, 45, 0.10)); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="860" fill="url(#bg)"/>
+
+  <text x="70" y="72" class="title">Comment Intelligence Data Pipeline</text>
+  <text x="70" y="102" class="subtitle">Raw recipe comments and metadata are transformed into deterministic editorial intelligence, then optionally enriched with AI-ready artifacts</text>
+
+  <text x="80" y="155" class="section">Sources</text>
+  <g class="shadow">
+    <rect x="70" y="185" rx="24" ry="24" width="260" height="135" fill="#fffdfa" stroke="#d6c8b4"/>
+    <text x="100" y="225" class="cardTitle">Comments</text>
+    <text x="100" y="255" class="cardBody">`data/comments_sample.csv`</text>
+    <text x="100" y="282" class="cardBody">Raw text, metadata, timestamps</text>
+  </g>
+  <g class="shadow">
+    <rect x="70" y="345" rx="24" ry="24" width="260" height="160" fill="#fffdfa" stroke="#d6c8b4"/>
+    <text x="100" y="385" class="cardTitle">Recipe Context</text>
+    <text x="100" y="415" class="cardBody">`data/Recipe_data.csv`</text>
+    <text x="100" y="440" class="cardBody">`data/recipe_saves.csv`</text>
+    <text x="100" y="467" class="cardBody">Metadata, reach, saves, URLs</text>
+  </g>
+
+  <text x="410" y="155" class="section">Deterministic Processing</text>
+  <g class="shadow">
+    <rect x="390" y="185" rx="28" ry="28" width="500" height="520" fill="url(#stage)"/>
+
+    <rect x="428" y="220" rx="18" ry="18" width="424" height="68" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="452" y="248" class="darkTitle">1. Load + Clean</text>
+    <text x="452" y="272" class="darkBody">`load_data.py`, `clean_comments.py`</text>
+
+    <rect x="428" y="307" rx="18" ry="18" width="424" height="68" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="452" y="335" class="darkTitle">2. Build Recipe Master</text>
+    <text x="452" y="359" class="darkBody">`build_recipe_master.py`</text>
+
+    <rect x="428" y="394" rx="18" ry="18" width="424" height="68" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="452" y="422" class="darkTitle">3. Tag Comment Signals</text>
+    <text x="452" y="446" class="darkBody">`tag_comment_signals.py`</text>
+
+    <rect x="428" y="481" rx="18" ry="18" width="424" height="86" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="452" y="509" class="darkTitle">4. Aggregate Recipe Intelligence</text>
+    <text x="452" y="533" class="darkBody">`build_recipe_comment_features.py`</text>
+    <text x="452" y="556" class="darkBody">`build_recipe_intelligence.py`</text>
+
+    <rect x="428" y="586" rx="18" ry="18" width="424" height="86" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="452" y="614" class="darkTitle">5. Package Evidence + Editorial Object</text>
+    <text x="452" y="638" class="darkBody">`build_evidence_candidates.py`, `build_recipe_evidence.py`</text>
+    <text x="452" y="661" class="darkBody">`build_editorial_intelligence.py`</text>
+  </g>
+
+  <text x="967" y="155" class="section">Core Artifacts</text>
+  <g class="shadow">
+    <rect x="940" y="185" rx="24" ry="24" width="285" height="118" fill="url(#artifact)" stroke="#c6b79f"/>
+    <text x="968" y="221" class="cardTitle">Foundation</text>
+    <text x="968" y="250" class="cardBody">`cleaned_comments.csv`</text>
+    <text x="968" y="275" class="cardBody">`recipe_master.csv`</text>
+  </g>
+  <g class="shadow">
+    <rect x="940" y="323" rx="24" ry="24" width="285" height="118" fill="url(#artifact)" stroke="#c6b79f"/>
+    <text x="968" y="359" class="cardTitle">Signals</text>
+    <text x="968" y="388" class="cardBody">`comment_signals.csv`</text>
+    <text x="968" y="413" class="cardBody">recipe phrase/feature outputs</text>
+  </g>
+  <g class="shadow">
+    <rect x="940" y="461" rx="24" ry="24" width="285" height="118" fill="url(#artifact)" stroke="#c6b79f"/>
+    <text x="968" y="497" class="cardTitle">Decision Layer</text>
+    <text x="968" y="526" class="cardBody">`recipe_intelligence.csv`</text>
+    <text x="968" y="551" class="cardBody">Deterministic issue + priority</text>
+  </g>
+  <g class="shadow">
+    <rect x="940" y="599" rx="24" ry="24" width="285" height="118" fill="url(#artifact)" stroke="#c6b79f"/>
+    <text x="968" y="635" class="cardTitle">Editorial Layer</text>
+    <text x="968" y="664" class="cardBody">`recipe_evidence.csv`</text>
+    <text x="968" y="689" class="cardBody">`editorial_intelligence.jsonl`</text>
+  </g>
+
+  <text x="1300" y="155" class="section">Optional AI Enrichment</text>
+  <g class="shadow">
+    <rect x="1270" y="185" rx="24" ry="24" width="265" height="160" fill="#fff7f3" stroke="#d8b6a8"/>
+    <text x="1298" y="223" class="cardTitle">Fix-Aware Copy</text>
+    <text x="1298" y="252" class="cardBody">Canonical workaround families</text>
+    <text x="1298" y="277" class="cardBody">Confidence-aware recommendation</text>
+    <text x="1298" y="304" class="cardBody">`recommended_edit_v2`</text>
+  </g>
+  <g class="shadow">
+    <rect x="1270" y="369" rx="24" ry="24" width="265" height="160" fill="#fff7f3" stroke="#d8b6a8"/>
+    <text x="1298" y="407" class="cardTitle">LLM Summaries</text>
+    <text x="1298" y="436" class="cardBody">Batch API input + fetch flow</text>
+    <text x="1298" y="461" class="cardBody">Evaluation for groundedness</text>
+    <text x="1298" y="488" class="cardBody">Display only when gated</text>
+  </g>
+  <g class="shadow">
+    <rect x="1270" y="553" rx="24" ry="24" width="265" height="160" fill="#fff7f3" stroke="#d8b6a8"/>
+    <text x="1298" y="591" class="cardTitle">RAG Corpus</text>
+    <text x="1298" y="620" class="cardBody">Chunk editorial object + evidence</text>
+    <text x="1298" y="645" class="cardBody">Recipe-scoped retrieval</text>
+    <text x="1298" y="672" class="cardBody">Follow-up question support</text>
+  </g>
+
+  <path d="M 330 252 C 356 252, 362 252, 390 252" fill="none" stroke="#2c3a3f" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <path d="M 330 425 C 356 425, 362 425, 390 425" fill="none" stroke="#2c3a3f" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <text x="339" y="235" class="arrowLabel">comment data</text>
+  <text x="339" y="408" class="arrowLabel">recipe metadata</text>
+
+  <path d="M 890 450 C 913 450, 918 450, 940 450" fill="none" stroke="#2c3a3f" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <text x="900" y="433" class="arrowLabel">materialized outputs</text>
+
+  <path d="M 1225 657 C 1246 657, 1248 657, 1270 657" fill="none" stroke="#2c3a3f" stroke-width="3.5" marker-end="url(#arrow)"/>
+  <text x="1232" y="640" class="arrowLabel">AI-ready inputs</text>
+
+  <g>
+    <rect x="390" y="748" rx="22" ry="22" width="1145" height="76" fill="#fbf8f2" stroke="#d8ccbc"/>
+    <text x="420" y="778" class="pill">PRODUCT RULE</text>
+    <text x="420" y="805" class="note">The pipeline always produces a deterministic editorial decision first. Fix-aware recommendation language, LLM summaries, and RAG are downstream layers that depend on evidence strength and never replace the core diagnosis.</text>
+  </g>
+</svg>
