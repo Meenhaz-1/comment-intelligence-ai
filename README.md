@@ -1,8 +1,37 @@
 # Comment Intelligence
 
-This project turns recipe comments into structured editorial intelligence for recipe review.
+Recipe teams often have thousands of user comments, but those comments are hard to act on at scale. The real signal is buried in free text:
 
-It combines rule-based text processing, recipe-level aggregation, evidence selection, fix-aware recommendation logic, optional LLM summaries, and a RAG exploration layer. The final product is a Next.js interface where the deterministic editorial decision remains the source of truth, supporting evidence remains visible, and AI is only used as a controlled enhancement.
+- Which recipes are actually failing for readers?
+- What kind of problem is happening?
+- Are people finding workarounds?
+- What should an editor fix first?
+
+This project solves that problem by turning messy recipe comments into structured editorial intelligence for recipe review.
+
+Instead of asking editors to manually read hundreds of comments per recipe, the system:
+
+- detects recurring friction and workaround signals in comments
+- rolls those signals up to the recipe level
+- keeps representative evidence attached to each recommendation
+- suggests what kind of editorial change may be needed
+- optionally adds AI summaries and an evidence-backed Q&A layer
+
+The final product is a Next.js interface where the deterministic editorial decision remains the source of truth, supporting evidence remains visible, and AI is only used as a controlled enhancement.
+
+## Problem this project solves
+
+Recipe comments are valuable, but raw comment streams are noisy and difficult to use operationally. A single recipe may have:
+
+- praise mixed with complaints
+- vague descriptions of failures
+- user modifications that hide the original issue
+- workaround suggestions scattered across many comments
+- too much volume for an editor to review quickly
+
+Without structure, it is hard to tell whether a recipe has a real quality problem, what the likely issue is, and whether readers have already discovered a fix pattern.
+
+This repo is designed to make that review process faster, more consistent, and easier to trust.
 
 ## What the project does
 
