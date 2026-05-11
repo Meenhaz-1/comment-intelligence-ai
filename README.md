@@ -1,6 +1,6 @@
 # Comment Intelligence
 
-Recipe teams often have thousands of user comments, but those comments are hard to act on at scale. The real signal is buried in free text:
+Recipe website editors often have thousands of user comments, but those comments are hard to act on at scale. The real signal is buried in free text:
 
 - Which recipes are actually failing for readers?
 - What kind of problem is happening?
